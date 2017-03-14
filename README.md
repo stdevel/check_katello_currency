@@ -119,3 +119,16 @@ apply Service "DIAG: Katello currency" {
 ```
 
 Systems running the Foreman/Katello application as well as systems without the Icinga2 agent (*or systems with the `noagent` flag*) are ignored.
+To check the statistics on Foreman/Katello hosts, you could use the following snippet:
+
+```
+apply Service "DIAG: Katello statistics" {
+  import "generic-service"
+  check_command = "check_katello_currency"
+  vars.katello_stats = true
+  assign where host.vars.os == "Linux" && host.vars.app == "katello"
+  ignore where host.vars.noagent
+}
+```
+
+Systems running the Foreman/Katello application (*implemented by the vars.app tag*) will be checked. The **vars.katello_stats** flag automatically sets the `-y` parameter.
