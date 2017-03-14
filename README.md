@@ -1,4 +1,6 @@
 # check_katello_currency
+![Example Icinga2 screenshot](https://raw.githubusercontent.com/stdevel/check_katello_currency/master/Icinga2_screenshot.jpg "Example Icinga2 screenshot")
+
 `check_katello_currency` is a Nagios/Icinga plugin for checking patch currency of hosts managed by Foreman/Katello or Red Hat Satellite 6
 
 The script checks the patch currency of one or multiple systems. The following information are gathered by accesing the Foreman/Katello API:
@@ -111,6 +113,9 @@ I'm using the following snippet to check all the update currency of all Linux VM
 apply Service "DIAG: Katello currency" {
   import "generic-service"
   check_command = "check_katello_currency"
+  vars.katello_perfdata = true
+  vars.katello_host = "st-katello01.stankowic.loc"
+  vars.katello_authfile = "/usr/lib64/nagios/plugins/katello.auth"
   assign where host.vars.os == "Linux"
   ignore where host.vars.app == "katello"
   ignore where host.vars.nokatello
@@ -126,6 +131,7 @@ apply Service "DIAG: Katello statistics" {
   import "generic-service"
   check_command = "check_katello_currency"
   vars.katello_stats = true
+  vars.katello_perfdata = true
   assign where host.vars.os == "Linux" && host.vars.app == "katello"
   ignore where host.vars.noagent
 }
