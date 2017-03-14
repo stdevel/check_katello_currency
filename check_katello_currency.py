@@ -12,9 +12,10 @@ import stat
 import json
 import datetime
 import time
+import getpass
 from ForemanAPIClient import ForemanAPIClient
 
-__version__ = "0.0.1"
+__version__ = "0.5.0"
 """
 str: Program version
 """
@@ -68,11 +69,13 @@ def check_systems():
     """
     This function checks all specified systems for errata counters.
     """
-    #set system names
     if options.all_systems:
+        #check all systems
         systems = [x for x in SYSTEM_ERRATA]
     else:
+        #onle check selected systems
         systems = options.system
+
     #check _all_ the systems
     result_text = ""
     perfdata = ""
@@ -80,19 +83,22 @@ def check_systems():
         LOGGER.debug("Checking system '{}'...".format(system))
 
         #get counters
-        counter = SYSTEM_ERRATA[system]["content_facet_attributes"]["errata_counts"]
-        #set perfdata postfix
+        counter = \
+        SYSTEM_ERRATA[system]["content_facet_attributes"]["errata_counts"]
+
+        #set perfdata postfix if multiple systems are checked
         if len(systems) > 1:
             perfdata_postfix = "_{}".format(
                 system[:system.find(".")].lower()
             )
         else:
             perfdata_postfix = ""
+
         #set-up/continue text
         if len(result_text) > 0:
             result_text = "{}, ".format(result_text)
 
-        #bugfix errata
+        #check bugfix errata
         if counter["bugfix"] >= options.bugs_crit:
             result_text = "{}bugfix errata CRITICAL ({})".format(
                 result_text, counter["bugfix"]
@@ -113,7 +119,7 @@ def check_systems():
             counter["bugfix"], options.bugs_warn, options.bugs_crit
         )
 
-        #secuirty errata
+        #check secuirty errata
         if counter["security"] >= options.security_crit:
             result_text = "{}, security errata CRITICAL ({})".format(
                 result_text, counter["security"]
@@ -134,7 +140,7 @@ def check_systems():
             options.security_warn, options.security_crit
         )
 
-        #total errata
+        #check total errata
         if options.total_warn and options.total_crit:
             if counter["total"] >= options.total_crit:
                 result_text = "{}, total errata CRITICAL ({})".format(
@@ -158,15 +164,12 @@ def check_systems():
 
         result_text = "{} for host {}".format(result_text, system)
 
-    #return result and die in a fire
+    #append perfdata if enabled
     if options.show_perfdata:
-        print "{}: {} |{}".format(
-            get_return_str(), result_text, perfdata
-        )
-    else:
-        print "{}: {}".format(
-            get_return_str(), result_text
-        )
+        result_text = "{} |{}".format(result_text, perfdata)
+
+    #print result and die in a fire
+    print "{}: {}".format(get_return_str(), result_text)
     exit(STATE)
 
 
@@ -175,7 +178,7 @@ def check_stats():
     """
     This function checks general statistics for all managed systems.
     """
-    #I'm so sorry, pylint
+    #Retrieving counters - I'm so sorry, pylint...
     bugs_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_warn]
     bugs_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_crit]
     LOGGER.debug("Bug errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
@@ -183,15 +186,19 @@ def check_stats():
     security_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["security"] >= options.security_crit]
     LOGGER.debug("Security errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
     if options.total_warn and options.total_crit:
+        #also get total warning/critical counters
         total_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_warn]
         total_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_crit]
         LOGGER.debug("Total errata (warning/critical): {}, {}".format(total_warn, total_crit))
-    #get outdated systems
+
+    #calculate outdated systems
     outdated_sys = bugs_warn + bugs_crit + security_warn + security_crit
     if options.total_warn and options.total_crit:
+        #also include total warning/critical counters
         outdated_sys = outdated_sys + total_warn + total_crit
+    #remove _all_ the duplicates
     outdated_sys = list(set(outdated_sys))
-    
+
     #get inactive systems
     inactive_sys = [x for x in SYSTEM_ERRATA if is_inactive(SYSTEM_ERRATA[x]["updated_at"])]
 
@@ -203,15 +210,17 @@ def check_stats():
         perfdata, len(SYSTEM_ERRATA), len(inactive_sys)
     )
 
+    #check outdated systems
     if len(outdated_sys) >= options.outdated_crit:
         result_text = "outdated systems CRITICAL ({})".format(len(outdated_sys))
-        set_code(2)     
+        set_code(2)
     elif len(outdated_sys) >= options.outdated_warn:
         result_text = "outdated systems WARNING ({})".format(len(outdated_sys))
         set_code(1)
     else:
         result_text = "outdated systems OK ({})".format(len(outdated_sys))
 
+    #check inactive systems
     if len(inactive_sys) >= options.inactive_crit:
         result_text = "{}, inactive systems CRITICAL ({})".format(
             result_text, len(inactive_sys))
@@ -224,9 +233,11 @@ def check_stats():
         result_text = "{}, inactive systems OK ({})".format(
             result_text, len(inactive_sys))
 
+    #append perfdata if enabled
     if options.show_perfdata:
         result_text = "{}| {}".format(result_text, perfdata)
 
+    #print result and die in a fire
     print "{}: {}".format(get_return_str(), result_text)
     exit(STATE)
 
@@ -242,11 +253,11 @@ def get_hosts():
     result_obj = json.loads(
         SAT_CLIENT.api_get("{}".format(filter_url))
     )
-    hosts={}
+    hosts = {}
     for host in result_obj["results"]:
         #found a host!
-        hosts[host["name"]]={}
-        hosts[host["name"]]=host
+        hosts[host["name"]] = {}
+        hosts[host["name"]] = host
     return hosts
 
 
@@ -266,7 +277,9 @@ def is_inactive(timestamp):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S")
     current_time = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
     #get system timestamp from string
-    timestamp_time = datetime.datetime.strptime(timestamp.replace(" UTC", ""), "%Y-%m-%d %H:%M:%S")
+    timestamp_time = datetime.datetime.strptime(
+        timestamp.replace(" UTC", ""), "%Y-%m-%d %H:%M:%S"
+    )
     #calculate difference
     if current_time - timestamp_time > datetime.timedelta(days=2):
         return True
@@ -389,82 +402,82 @@ def parse_options(args=None):
 
     #define option groups
     gen_opts = parser.add_argument_group("generic arguments")
-    fman_opts =  parser.add_argument_group("Foreman arguments")
-    stat_opts =  parser.add_argument_group("statistic arguments")
-    system_opts =  parser.add_argument_group("system arguments")
+    fman_opts = parser.add_argument_group("Foreman arguments")
+    stat_opts = parser.add_argument_group("statistic arguments")
+    system_opts = parser.add_argument_group("system arguments")
     filter_opts = parser.add_argument_group("filter arguments")
     filter_opts_excl = filter_opts.add_mutually_exclusive_group()
 
     #GENERIC ARGUMENTS
     #-d / --debug
-    gen_opts.add_argument("-d", "--debug", dest="debug", default=False,
+    gen_opts.add_argument("-d", "--debug", dest="debug", default=False, \
     action="store_true", help="enable debugging outputs")
     #-P / --show-perfdata
-    gen_opts.add_argument("-P", "--show-perfdata", dest="show_perfdata",
-    default=False, action="store_true",
+    gen_opts.add_argument("-P", "--show-perfdata", dest="show_perfdata", \
+    default=False, action="store_true", \
     help="enables performance data (default: no)")
 
     #FOREMAN ARGUMENTS
     #-a / --authfile
-    fman_opts.add_argument("-a", "--authfile", dest="authfile", metavar="FILE",
+    fman_opts.add_argument("-a", "--authfile", dest="authfile", metavar="FILE",\
     default="", help="defines an auth file to use instead of shell variables")
     #-s / --server
-    fman_opts.add_argument("-s", "--server", dest="server", metavar="SERVER",
+    fman_opts.add_argument("-s", "--server", dest="server", metavar="SERVER", \
     default="localhost", help="defines the server to use (default: localhost)")
 
     #STATISTIC ARGUMENTS
     #-y / --generic-statistics
-    stat_opts.add_argument("-y", "--generic-statistics", dest="gen_stats",
+    stat_opts.add_argument("-y", "--generic-statistics", dest="gen_stats", \
     default=False, action="store_true", help="checks for inactive and" \
     " outdated system statistic metrics (default :no)")
     #-u / --outdated-warning
-    stat_opts.add_argument("-u", "--outdated-warning", dest="outdated_warn",
+    stat_opts.add_argument("-u", "--outdated-warning", dest="outdated_warn", \
     default=50, metavar="NUMBER", type=int, help="defines outdated systems" \
     " warning percentage threshold (default: 50)")
     #-U / --outdated-critical
-    stat_opts.add_argument("-U", "--outdated-critical", dest="outdated_crit",
+    stat_opts.add_argument("-U", "--outdated-critical", dest="outdated_crit", \
     default=80, metavar="NUMBER", type=int, help="defines outdated systems" \
     " critical percentage threshold (default: 80)")
     #-n / --inactive-warning
-    stat_opts.add_argument("-n", "--inactive-warning", dest="inactive_warn",
+    stat_opts.add_argument("-n", "--inactive-warning", dest="inactive_warn", \
     default=10, metavar="NUMBER", type=int, help="defines inactive systems" \
     " warning percentage threshold (default: 10)")
     #-N / --inactive-critical
-    stat_opts.add_argument("-N", "--inactive-critical", dest="inactive_crit",
+    stat_opts.add_argument("-N", "--inactive-critical", dest="inactive_crit", \
     default=50, metavar="NUMBER", type=int, help="defines inactive systems" \
     " critical percentage threshold (default: 50)")
 
     #SYSTEM ARGUMENTS
     #-S / --system
-    system_opts.add_argument("-S", "--system", dest="system", default=[],
+    system_opts.add_argument("-S", "--system", dest="system", default=[], \
     metavar="SYSTEM", action="append", help="defines one or multiple" \
     " system(s) to check")
     #-A / --all-systems
-    system_opts.add_argument("-A", "--all-systems", dest="all_systems",
+    system_opts.add_argument("-A", "--all-systems", dest="all_systems", \
     default=False, action="store_true", help="checks all registered" \
     " systems - USE WITH CAUTION (default: no)")
     #-t / --total-warning
-    system_opts.add_argument("-t", "--total-warning", dest="total_warn",
+    system_opts.add_argument("-t", "--total-warning", dest="total_warn", \
     metavar="NUMBER", type=int, help="defines total errata warning" \
     " threshold (default: empty)")
     #-T / --total-critical
-    system_opts.add_argument("-T", "--total-critical", dest="total_crit",
+    system_opts.add_argument("-T", "--total-critical", dest="total_crit", \
     metavar="NUMBER", type=int, help="defines total errata critical" \
     " threshold (default: empty)")
     #-i / --important-warning
-    system_opts.add_argument("-i", "--security-warning", "--important-warning",
-    dest="security_warn", metavar="NUMBER", type=int, default=10,
+    system_opts.add_argument("-i", "--security-warning", "--important-warning",\
+    dest="security_warn", metavar="NUMBER", type=int, default=10, \
     help="defines security errata warning threshold (default: 10)")
     #-I / --important-critical
-    system_opts.add_argument("-I", "--security-critical",
-    "--important-critical", dest="security_crit", metavar="NUMBER", type=int,
+    system_opts.add_argument("-I", "--security-critical", \
+    "--important-critical", dest="security_crit", metavar="NUMBER", type=int, \
     default=20, help="defines security errata critical threshold (default: 20)")
     #-b / --bugs-warning
-    system_opts.add_argument("-b", "--bugs-warning", dest="bugs_warn",
+    system_opts.add_argument("-b", "--bugs-warning", dest="bugs_warn", \
     type=int, metavar="NUMBER", default=25, help="defines bug package update" \
     " warning threshold (default: 25)")
     #-B / --bugs-critical
-    system_opts.add_argument("-B", "--bugs-critical", dest="bugs_crit",
+    system_opts.add_argument("-B", "--bugs-critical", dest="bugs_crit", \
     type=int, metavar="NUMBER", default=50, help="defines bug package update" \
     " critical threshold (default: 50)")
 
@@ -504,7 +517,7 @@ def main(options):
     if options.all_systems == False and options.gen_stats == False and \
     not options.system:
         LOGGER.error("You need to either specify one or multiple particular" \
-        "systems or all check all systems!")
+        " systems or check statistics!")
         exit(1)
 
     (sat_user, sat_pass) = get_credentials("Satellite", options.authfile)
