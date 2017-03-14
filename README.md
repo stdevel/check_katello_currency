@@ -131,4 +131,18 @@ apply Service "DIAG: Katello statistics" {
 }
 ```
 
-Systems running the Foreman/Katello application (*implemented by the vars.app tag*) will be checked. The **vars.katello_stats** flag automatically sets the `-y` parameter.
+Systems running the Foreman/Katello application (*implemented by the vars.app tag*) will be checked. The **vars.katello_stats** flag automatically sets the `-y` parameter. Make sure the particular host configuration contains an authfile:
+
+```
+object Host "st-katello01.stankowic.loc" {
+  import "linux-host"
+...
+  vars.app = "katello"
+  vars.katello_authfile = "/usr/lib64/nagios/plugins/katello.auth"
+```
+
+The authfile needs to have file permissions **0600** and should be owned by the ``icinga`` user:
+```
+# chmod 0600 /usr/lib64/nagios/plugins/katello.auth
+# chown icinga: /usr/lib64/nagios/plugins/katello.auth
+```
