@@ -1,7 +1,9 @@
 # check_katello_currency
 ![Example Icinga2 screenshot](https://raw.githubusercontent.com/stdevel/check_katello_currency/master/Icinga2_screenshot.jpg "Example Icinga2 screenshot")
 
-`check_katello_currency` is a Nagios/Icinga plugin for checking patch currency of hosts managed by Foreman/Katello or Red Hat Satellite 6
+`check_katello_currency` is a Nagios/Icinga plugin for checking patch currency of hosts managed by Foreman/Katello or Red Hat Satellite 6. As it also supports performance data, it can be used along with visualization tools such as Grafana:
+
+![Example Grafana screenshot](https://raw.githubusercontent.com/stdevel/check_katello_currency/master/grafana_screenshot.jpg "Example Grafana screenshot")
 
 The script checks the patch currency of one or multiple systems. The following information are gathered by accesing the Foreman/Katello API:
 - Outstanding errata update counter per category:
