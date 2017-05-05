@@ -46,6 +46,7 @@ The following parameters can be specified:
 | `-P` / `--show-perfdata` | enables performance data (*default: no*) |
 | `-a` / `--authfile` | defines an auth file to use instead of shell variables |
 | `-s` / `--server` | defines the server to use (*default: localhost*) |
+| `--insecure` | Disables SSL verification (*default: no*) |
 | `-y` / `--generic-statistics` | checks for inactive and outdated system statistic metrics (*default :no*) |
 | `-u` / `--outdated-warning` | defines outdated systems warning percentage threshold (*default: 50*) |
 | `-U` / `--outdated-critical` | defines outdated systems critical percentage threshold (*default: 80*) |

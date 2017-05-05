@@ -15,4 +15,9 @@ releases:
         name: check_katello_currency.py
         url: "file:///check_katello_currency.py"
         description: "Release 0.5.1"
-        checksum: 91560ef7c3a9e6cb2c7d5faac9ecaae4
+        checksum: 4349e6b12030b5d7dd4cb626f8fff61a
+      - 
+        name: ForemanAPIClient.py
+        url: "file:///ForemanAPIClient.py"
+        description: "Release 0.5.1"
+        checksum: b65efb6f1027e5ddb573718395e5ef0b

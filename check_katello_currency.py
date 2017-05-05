@@ -262,8 +262,9 @@ def get_hosts():
     hosts = {}
     for host in result_obj["results"]:
         #found a host!
-        hosts[host["name"]] = {}
-        hosts[host["name"]] = host
+        if host["name"] not in options.exclude:
+            hosts[host["name"]] = {}
+            hosts[host["name"]] = host
     return hosts
 
 
@@ -430,6 +431,9 @@ def parse_options(args=None):
     #-s / --server
     fman_opts.add_argument("-s", "--server", dest="server", metavar="SERVER", \
     default="localhost", help="defines the server to use (default: localhost)")
+    #--insecure
+    fman_opts.add_argument("--insecure", dest="ssl_verify", default=True, \
+    action="store_false", help="Disables SSL verification (default: no)")
 
     #STATISTIC ARGUMENTS
     #-y / --generic-statistics
@@ -531,7 +535,9 @@ def main(options):
         exit(1)
 
     (sat_user, sat_pass) = get_credentials("Satellite", options.authfile)
-    SAT_CLIENT = ForemanAPIClient(options.server, sat_user, sat_pass)
+    SAT_CLIENT = ForemanAPIClient(
+        options.server, sat_user, sat_pass, options.ssl_verify
+    )
     #validate filters
     validate_filters(options, SAT_CLIENT)
 
