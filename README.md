@@ -54,6 +54,7 @@ The following parameters can be specified:
 | `-N` / `--inactive-critical` | defines inactive systems critical percentage threshold (*default: 50*) |
 | `-S` / `--system` | defines one or multiple system(s) to check |
 | `-A` / `--all-systems` | checks all registered systems - USE WITH CAUTION (*default: no*) |
+| `-x` / `--exclude` | specifices particular hosts to ignore (*default: no*)  |
 | `-t` / `--total-warning` | defines total package update warning threshold (*default: empty*) |
 | `-T` / `--total-critical` | defines total package update critical threshold (*default: empty*) |
 | `-i` / `--important-warning` | defines security package (*critical, important and moderate security fixes*) update warning threshold (*default: 10*) |
