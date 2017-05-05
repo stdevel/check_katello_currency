@@ -8,11 +8,11 @@ type: Plugin
 license: gplv3
 releases: 
   - 
-    name: 0.5.0
-    description: "0.5.0 Release"
+    name: 0.5.1
+    description: "0.5.1 Release"
     files: 
       - 
         name: check_katello_currency.py
         url: "file:///check_katello_currency.py"
-        description: "Release 0.5.0"
-        checksum: 221908408b29260ed32145ea1adc00b6
+        description: "Release 0.5.1"
+        checksum: 91560ef7c3a9e6cb2c7d5faac9ecaae4

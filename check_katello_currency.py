@@ -15,7 +15,7 @@ import time
 import getpass
 from ForemanAPIClient import ForemanAPIClient
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 """
 str: Program version
 """
@@ -75,6 +75,8 @@ def check_systems():
     else:
         #onle check selected systems
         systems = options.system
+    #remove blacklisted systems
+    systems = [x for x in systems if x not in options.exclude]
 
     #check _all_ the systems
     result_text = ""
@@ -83,8 +85,12 @@ def check_systems():
         LOGGER.debug("Checking system '{}'...".format(system))
 
         #get counters
-        counter = \
-        SYSTEM_ERRATA[system]["content_facet_attributes"]["errata_counts"]
+        try:
+            counter = \
+            SYSTEM_ERRATA[system]["content_facet_attributes"]["errata_counts"]
+        except KeyError as e:
+            LOGGER.error("Unable to check system '{}'".format(system))
+            exit(2)
 
         #set perfdata postfix if multiple systems are checked
         if len(systems) > 1:
@@ -456,6 +462,10 @@ def parse_options(args=None):
     system_opts.add_argument("-A", "--all-systems", dest="all_systems", \
     default=False, action="store_true", help="checks all registered" \
     " systems - USE WITH CAUTION (default: no)")
+    #-x / --exclude
+    system_opts.add_argument("-x", "--exclude", action="append", \
+    default=[], type=str, dest="exclude", metavar="NAME", help="specfies " \
+    "particular hosts to ignore (default: no)")
     #-t / --total-warning
     system_opts.add_argument("-t", "--total-warning", dest="total_warn", \
     metavar="NUMBER", type=int, help="defines total errata warning" \
