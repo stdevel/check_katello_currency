@@ -15,7 +15,7 @@ import time
 import getpass
 from ForemanAPIClient import ForemanAPIClient
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 """
 str: Program version
 """
@@ -523,6 +523,10 @@ def parse_options(args=None):
 def main(options):
     """Main function, starts the logic based on parameters."""
     global SAT_CLIENT, SYSTEM_ERRATA
+
+    #splitting is fun
+    if len(options.system) == 1:
+        options.system = options.system[0].split(',')
 
     LOGGER.debug("Options: {0}".format(options))
     LOGGER.debug("Arguments: {0}".format(args))
