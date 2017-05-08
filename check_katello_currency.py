@@ -285,7 +285,7 @@ def is_inactive(timestamp):
     current_time = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
     #get system timestamp from string
     timestamp_time = datetime.datetime.strptime(
-        timestamp.replace(" UTC", ""), "%Y-%m-%d %H:%M:%S"
+        timestamp[0:19], "%Y-%m-%d %H:%M:%S"
     )
     #calculate difference
     if current_time - timestamp_time > datetime.timedelta(days=2):
