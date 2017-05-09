@@ -15,7 +15,7 @@ import time
 import getpass
 from ForemanAPIClient import ForemanAPIClient
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 """
 str: Program version
 """
@@ -184,18 +184,36 @@ def check_stats():
     """
     This function checks general statistics for all managed systems.
     """
+    global SYSTEM_ERRATA
+
     #Retrieving counters - I'm so sorry, pylint...
-    bugs_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_warn]
-    bugs_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_crit]
-    LOGGER.debug("Bug errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
-    security_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["security"] >= options.security_warn]
-    security_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["security"] >= options.security_crit]
-    LOGGER.debug("Security errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
-    if options.total_warn and options.total_crit:
-        #also get total warning/critical counters
-        total_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_warn]
-        total_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_crit]
-        LOGGER.debug("Total errata (warning/critical): {}, {}".format(total_warn, total_crit))
+    try:
+        #get systems without agent
+        nokatello_sys = [x for x in SYSTEM_ERRATA if "content_facet_attributes" not in SYSTEM_ERRATA[x]]
+        LOGGER.debug("Systems without Katello agent: {}".format(nokatello_sys))
+        #remove systems without Katello agent, otherwise the following wont work
+        for system in nokatello_sys:
+            del SYSTEM_ERRATA[system]
+
+        #get bugs
+        bugs_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_warn]
+        bugs_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["bugfix"] >= options.bugs_crit]
+        LOGGER.debug("Bug errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
+
+        #get security fixes
+        security_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["security"] >= options.security_warn]
+        security_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["security"] >= options.security_crit]
+        LOGGER.debug("Security errata (warning/critical): {}, {}".format(bugs_warn, bugs_crit))
+        if options.total_warn and options.total_crit:
+            #also get total warning/critical counters
+            total_warn = []
+            total_crit = []
+            total_warn = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_warn]
+            total_crit = [x for x in SYSTEM_ERRATA if SYSTEM_ERRATA[x]["content_facet_attributes"]["errata_counts"]["total"] >= options.total_crit]
+            LOGGER.debug("Total errata (warning/critical): {}, {}".format(total_warn, total_crit))
+    except KeyError as e:
+        LOGGER.debug("Unable to process '{}' information".format(e))
+        pass
 
     #calculate outdated systems
     outdated_sys = bugs_warn + bugs_crit + security_warn + security_crit
@@ -207,6 +225,8 @@ def check_stats():
 
     #get inactive systems
     inactive_sys = [x for x in SYSTEM_ERRATA if is_inactive(SYSTEM_ERRATA[x]["updated_at"])]
+    LOGGER.debug("Inactive systems: {}".format(inactive_sys))
+
 
     #set-up perfdata
     perfdata = "'systems_outdated'={};;;;".format(len(outdated_sys))
@@ -214,6 +234,11 @@ def check_stats():
     #get total and inactive systems
     perfdata = "{} 'systems_total'={};;;; 'systems_inactive'={};;;;".format(
         perfdata, len(SYSTEM_ERRATA), len(inactive_sys)
+    )
+
+    #get systems without Katello agent
+    perfdata = "{} 'systems_noagent'={};;;;".format(
+        perfdata, len(nokatello_sys)
     )
 
     #check outdated systems
@@ -239,6 +264,12 @@ def check_stats():
         result_text = "{}, inactive systems OK ({})".format(
             result_text, len(inactive_sys))
 
+    #check systems without Katello agent
+    if len(nokatello_sys) > 0:
+        result_text = "{}, systems without Katello agent: ({})".format(
+            result_text, ",".join(nokatello_sys))
+        set_code(1)
+
     #append perfdata if enabled
     if options.show_perfdata:
         result_text = "{}| {}".format(result_text, perfdata)
@@ -254,7 +285,9 @@ def get_hosts():
     This function returns all hosts including errata information
     """
     #get all the hosts depending on the filter
-    filter_url = get_filter(options, "host")
+    filter_url = "{}{}".format(
+        get_filter(options, "host"), "?per_page=1337"
+    )
     LOGGER.debug("Filter URL will be '{}'".format(filter_url))
     result_obj = json.loads(
         SAT_CLIENT.api_get("{}".format(filter_url))

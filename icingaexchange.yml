@@ -8,16 +8,16 @@ type: Plugin
 license: gplv3
 releases: 
   - 
-    name: 0.5.2
-    description: "0.5.2 Release"
+    name: 0.5.3
+    description: "0.5.3 Release"
     files: 
       - 
         name: check_katello_currency.py
         url: "file:///check_katello_currency.py"
-        description: "Release 0.5.2"
-        checksum: c4822742947b991c21ea69b5a20c0210
+        description: "Release 0.5.3"
+        checksum: 5a37a99a6d301474412ecba2ff723bf0
       - 
         name: ForemanAPIClient.py
         url: "file:///ForemanAPIClient.py"
-        description: "Release 0.5.2"
+        description: "Release 0.5.3"
         checksum: b65efb6f1027e5ddb573718395e5ef0b
